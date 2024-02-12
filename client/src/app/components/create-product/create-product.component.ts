@@ -1,18 +1,23 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Product } from 'src/app/models/product';
+import { ProductService } from 'src/app/services/product.service';
 
 @Component({
   selector: 'app-create-product',
   templateUrl: './create-product.component.html',
   styleUrls: ['./create-product.component.css']
 })
-export class CreateProductComponent {
+export class CreateProductComponent implements OnInit{
+
+  id:string | null;
 
   productForm!: FormGroup;
   constructor(private fb:FormBuilder, private router:Router,
+    private productService:ProductService,
+    private aRouter:ActivatedRoute,
     private toastr: ToastrService){
     this.productForm = this.fb.group({
       producto: ['', Validators.required],
@@ -20,6 +25,12 @@ export class CreateProductComponent {
       location: ['', Validators.required],
       price: ['', Validators.required]
     });
+
+    this.id = this.aRouter.snapshot.paramMap.get('id');
+  }
+
+  ngOnInit():void{
+    this.edit();
   }
 
   addProduct(){
@@ -32,8 +43,42 @@ export class CreateProductComponent {
       price:this.productForm.get('price')?.value
     }
 
-    this.toastr.success('Hello world!', 'Toastr fun!');
+    if( this.id !== null){
 
-    this.router.navigate(['/']);
+      this.productService.update(this.id,product).subscribe(data=>{
+
+        this.toastr.success('Hello world!', 'Toastr fun!');
+        this.router.navigate(['/']);
+      }, error =>{
+  
+        console.warn(error);
+        this.productForm.reset();
+      });
+    }
+    else{
+
+      this.productService.save(product).subscribe(data=>{
+
+        this.toastr.success('Hello world!', 'Toastr fun!');
+        this.router.navigate(['/']);
+      }, error =>{
+  
+        console.warn(error);
+        this.productForm.reset();
+      });
+    }
+  }
+
+  edit(){
+    if(this.id !== null){
+      this.productService.detail(this.id).subscribe(data=>{
+        this.productForm.setValue({
+          producto: data.name,
+          category: data.category,
+          location: data.location,
+          price: data.price
+        });
+      });
+    }
   }
 }
